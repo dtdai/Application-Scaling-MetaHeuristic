@@ -16,9 +16,9 @@ public class GameModel {
     private final ArrayList<PhysicalMachine> pms;
     private final ArrayList<VirtualMachine> vms;
     private final ArrayList<Application> App = new ArrayList<>();
-    private final int m; // Amount of pm
     private final int u; // Amount of vm
     private final int a = 10; //Amount of Application
+    private final int m;
     private final int tier = 3;
     private final double q = 1000.0;
     private final double Z = 120.0;
@@ -53,7 +53,6 @@ public class GameModel {
         for (Integer tour1 : tour) {
             cTour.add(tour1);
         }
-        
         for (int i = 0; i < tier; i++) {
             ArrayList<Integer> s = new ArrayList<>();
             for (int j = 0; j < m; j++) {
@@ -193,9 +192,9 @@ public class GameModel {
         h = new double[m];
         ome = new double[m];
         for (int i = 0; i < m; i++) {
-            h[i] = 0.3 * ((pms.get(i).getCore() * 1.0) / (pms.get(i).getMax_core() * 1.0))
-                    + 0.3 * ((pms.get(i).getRam() * 1.0) / (pms.get(i).getMax_ram() * 1.0))
-                    + 0.4 * ((pms.get(i).getDisk() * 1.0) / (pms.get(i).getMax_disk() * 1.0));
+            h[i] = 0.3 * ((pms.get(i).getUcore() * 1.0) / (pms.get(i).getCore() * 1.0))
+                    + 0.3 * ((pms.get(i).getUram() * 1.0) / (pms.get(i).getRam() * 1.0))
+                    + 0.4 * ((pms.get(i).getUdisk() * 1.0) / (pms.get(i).getDisk() * 1.0));
             h_t = h_t + h[i];
             ome[i] = 1 - h[i];
         }

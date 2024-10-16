@@ -5,7 +5,6 @@ import definition.VirtualMachine;
 import definition.PhysicalMachine;
 import java.util.ArrayList;
 import algorithm.ACO;
-import algorithm.GameModel;
 import algorithm.HybridACOSA;
 import algorithm.PSO;
 import algorithm.SA;

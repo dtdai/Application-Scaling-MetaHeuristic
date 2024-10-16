@@ -10,8 +10,6 @@ public class Application {
     private ArrayList<ArrayList<Integer>> tier;
     private int numVm;
     private ArrayList<Integer> lamb;
-    private ArrayList<Integer> Pm;
-    private ArrayList<Integer> Vm;
     
     public Application() {
         this.tier = new ArrayList<>();
