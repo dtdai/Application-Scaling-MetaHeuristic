@@ -90,7 +90,8 @@ public class ACO {
         }
         
         a.tour = tour;
-        a.model = new GameModel(pms, vms, tour);
+//        a.model = new GameModel(pms, vms, tour);
+        a.model = GetModel(tour);
         a.value = a.model.BenefitFunction();
 
         if (Double.compare(a.value, bestValue) > 0) {
@@ -108,6 +109,14 @@ public class ACO {
             hosts.add(new PhysicalMachine(machine.getCore(), machine.getRam(), machine.getDisk()));
         }
         return hosts;
+    }
+    
+    private GameModel GetModel(ArrayList<Integer> tour) {
+        ArrayList<PhysicalMachine> hosts = CloneHost();
+        for (int i = 0; i < tour.size(); i++) {
+            Allocation(hosts, tour.get(i) - 1, i);
+        }
+        return new GameModel(hosts, vms, tour);
     }
 
     private ArrayList<Integer> GenerateTour() {
