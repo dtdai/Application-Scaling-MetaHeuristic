@@ -10,7 +10,7 @@ public class Application {
     private ArrayList<ArrayList<Integer>> tier;
     private int numVm;
     private ArrayList<Integer> lamb;
-    public ArrayList<VirtualMachine> vm;
+    private ArrayList<Integer> vm;
     
     public Application() {
         this.tier = new ArrayList<>();
@@ -45,5 +45,17 @@ public class Application {
 
     public void setLamb(int lambda) {
         this.lamb.add(lambda);
+    }
+
+    public ArrayList<Integer> getVm() {
+        return vm;
+    }
+
+    public void setVm(ArrayList<Integer> vm) {
+        this.vm = vm;
+    }
+    
+    public void setVm(int vm) {
+        this.vm.add(vm);
     }
 }

@@ -21,7 +21,7 @@ public class AppBundle {
         
     }
 
-    private void InsertVM(ArrayList<Application> app, ArrayList<PhysicalMachine> pms, ArrayList<VirtualMachine> vms) {
+    private ArrayList<Integer> InsertVM(ArrayList<Application> app, ArrayList<PhysicalMachine> pms, ArrayList<VirtualMachine> vms) {
         int pmindex = 0, vmindex = 0;
         ArrayList<Integer> tour = new ArrayList<>();
         for (int i = 0; i < app.size(); i++) {
@@ -31,6 +31,7 @@ public class AppBundle {
                     while (n > 0) {
                         if (pms.get(pmindex).CheckAvailable(vms.get(vmindex))) {
                             pms.get(pmindex).Allocation(vms.get(vmindex));
+                            app.get(i).setVm(vmindex);
                             tour.add(pmindex + 1);
                             vmindex++;
                             n--;
@@ -41,6 +42,7 @@ public class AppBundle {
                 }
             }
         }
+        return tour;
     }
 
     private void ImportFile(ArrayList<Application> app, int num) throws IOException {
