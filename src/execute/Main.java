@@ -24,6 +24,7 @@ public class Main {
 
         int numPM = 25; // Amount Physical Machine - Host
         int numVM = 75; // Amount Virtual Machine - Task
+        int numApp = 3; // Amount Application
         int solution = 1; // for Switch condition: 0 -> Nothing (for Testing); 1 -> ACO; 2 -> PSO; 3 -> SA; 4 -> Hybrid;
         int aco_numAnts = 100; // ACO - Amount ants generate
         double aco_alpha = 1.0; // ACO - Pheromone importance
@@ -79,20 +80,20 @@ public class Main {
 
         switch (solution) {
             case 1 -> {
-                ACO aco = new ACO(aco_numAnts, mc, aco_alpha, aco_beta, aco_evRate);
+                ACO aco = new ACO(numApp, aco_numAnts, mc, aco_alpha, aco_beta, aco_evRate);
                 aco.solve();
             }
             case 2 -> {
-                PSO pso = new PSO(mc, pso_numParticles, pso_Iteration, pso_defaultW, pso_defaultC1, pso_defaultC2);
-                pso.solve();
+//                PSO pso = new PSO(numApp, mc, pso_numParticles, pso_Iteration, pso_defaultW, pso_defaultC1, pso_defaultC2);
+//                pso.solve();
             }
             case 3 -> {
-                SA sa = new SA(mc, sa_temp, sa_coolRate);
+                SA sa = new SA(numApp, mc, sa_temp, sa_coolRate);
                 sa.solve();
             }
             case 4 -> {
-                HybridACOSA hybridACOSA = new HybridACOSA(aco_numAnts, mc, aco_alpha, aco_beta, aco_evRate, sa_temp, sa_coolRate);
-                hybridACOSA.solve();
+//                HybridACOSA hybridACOSA = new HybridACOSA(numApp, aco_numAnts, mc, aco_alpha, aco_beta, aco_evRate, sa_temp, sa_coolRate);
+//                hybridACOSA.solve();
             }
         }
         

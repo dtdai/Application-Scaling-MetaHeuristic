@@ -1,5 +1,6 @@
 package algorithm;
 
+import definition.AppBundle;
 import definition.Machine;
 import definition.VirtualMachine;
 import definition.PhysicalMachine;
@@ -27,16 +28,15 @@ public class ACO {
     private ArrayList<Integer> bestTour;
     private double bestValue = Double.MIN_EXPONENT;
     private Object bestIndex;
+    private AppBundle appBundle;
 
-    public ACO(int numAnts, ArrayList<Machine> mc, double alpha, double beta, double evaporationRate) {
+    public ACO(int numApps, int numAnts, ArrayList<Machine> mc, double alpha, double beta, double evaporationRate) {
         pms = new ArrayList<>();
         vms = new ArrayList<>();
         for (Machine i : mc) {
             switch (i) {
-                case PhysicalMachine physicalMachine ->
-                    pms.add(physicalMachine);
-                case VirtualMachine virtualMachine ->
-                    vms.add(virtualMachine);
+                case PhysicalMachine p -> pms.add(p);
+                case VirtualMachine v -> vms.add(v);
                 default -> {
                 }
             }
@@ -50,6 +50,8 @@ public class ACO {
         this.evaporationRate = evaporationRate;
         trails = new ArrayList<>(); // double[numVM][numPM];
         probabilities = new ArrayList<>(); // double[numPM];
+        
+        appBundle = new AppBundle(numApps, pms, vms);
     }
 
     public void solve() {
@@ -85,17 +87,17 @@ public class ACO {
         Ants a = new Ants();
         ArrayList<Integer> tour = new ArrayList<>();
 
-        while (tour.size() != numVM) {
+        while (tour.size() != appBundle.getCount() - appBundle.getTour().size()) {
             tour = GenerateTour();
         }
         
-        a.tour = tour;
-//        a.model = new GameModel(pms, vms, tour);
-        a.model = GetModel(tour);
+        a.tour.addAll(appBundle.getTour());
+        a.tour.addAll(tour);
+        a.model = GetModel(a, tour);
         a.value = a.model.BenefitFunction();
 
         if (Double.compare(a.value, bestValue) > 0) {
-            bestTour = tour;
+            bestTour = a.tour;
             bestValue = a.value;
             bestIndex = a.model;
         }
@@ -111,12 +113,12 @@ public class ACO {
         return hosts;
     }
     
-    private GameModel GetModel(ArrayList<Integer> tour) {
+    private GameModel GetModel(Ants a, ArrayList<Integer> tour) {
         ArrayList<PhysicalMachine> hosts = CloneHost();
         for (int i = 0; i < tour.size(); i++) {
             Allocation(hosts, tour.get(i) - 1, i);
         }
-        return new GameModel(hosts, vms, tour);
+        return new GameModel(appBundle.getApp(), hosts, vms, a.tour);
     }
 
     private ArrayList<Integer> GenerateTour() {
@@ -125,7 +127,7 @@ public class ACO {
 
         int currentNode = 0;
 
-        for (int i = 0; i < numVM; i++) {
+        for (int i = appBundle.getTour().size(); i < appBundle.getCount(); i++) {
 
             probabilities = calculateProbabilities(trails, hosts, currentNode);
 

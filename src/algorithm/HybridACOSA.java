@@ -1,5 +1,6 @@
 package algorithm;
 
+import definition.AppBundle;
 import definition.Machine;
 import definition.PhysicalMachine;
 import definition.VirtualMachine;
@@ -17,8 +18,8 @@ public class HybridACOSA {
     private final int numVM;
     private final ArrayList<PhysicalMachine> pms;
     private final ArrayList<VirtualMachine> vms;
-    private final double[][] trails;
-    private double[] probabilities;
+    private final ArrayList<ArrayList<Double>> trails;
+    private ArrayList<Double> probabilities;
     private final double alpha;
     private final double beta;
     private final double evaporationRate;
@@ -26,15 +27,22 @@ public class HybridACOSA {
     private final double nguy = 0.5;
     private final double sa_temp;
     private final double sa_coolRate;
+    private ArrayList<Integer> bestTour;
+    private double bestValue = Double.MIN_EXPONENT;
+    private int bestIndex;
+    private AppBundle appBundle;
 
-    public HybridACOSA(int numAnts, ArrayList<Machine> mc, double alpha, double beta, double evaporationRate, double sa_temp, double sa_coolRate) {
+    public HybridACOSA(int numApps, int numAnts, ArrayList<Machine> mc, double alpha, double beta, double evaporationRate, double sa_temp, double sa_coolRate) {
         pms = new ArrayList<>();
         vms = new ArrayList<>();
         for (Machine i : mc) {
-            if (i instanceof PhysicalMachine) {
-                pms.add((PhysicalMachine) i);
-            } else if (i instanceof VirtualMachine) {
-                vms.add((VirtualMachine) i);
+            switch (i) {
+                case PhysicalMachine p ->
+                    pms.add(p);
+                case VirtualMachine v ->
+                    vms.add(v);
+                default -> {
+                }
             }
         }
 
@@ -44,48 +52,47 @@ public class HybridACOSA {
         this.alpha = alpha;
         this.beta = beta;
         this.evaporationRate = evaporationRate;
-        trails = new double[numVM][numPM];
-        probabilities = new double[numPM];
+        trails = new ArrayList<>();
+        probabilities = new ArrayList<>();
         this.sa_temp = sa_temp;
         this.sa_coolRate = sa_coolRate;
+        appBundle = new AppBundle(numApps, pms, vms);
     }
 
     public void solve() {
-        ArrayList<Returning> Rbest = new ArrayList<>();
+        ArrayList<Ant> A = new ArrayList<>();
 
         for (int i = 0; i < numVM; i++) {
+            ArrayList<Double> trail = new ArrayList<>();
             for (int j = 0; j < numPM; j++) {
-                trails[i][j] = 0.001;
+                trail.add(0.001);
             }
+            trails.add(trail);
         }
 
         for (int index = 0; index < 100; index++) {
-            ArrayList<Integer> ant = new ArrayList<>();
-            double rbest = 1e9;
-
-            for (int i = 0; i < numAnts; i++) {
-                Returning antres = generateAntTour();
-                if (antres.tour.size() == numVM && antres.rbest < rbest) {
-                    ant = antres.tour;
-                    rbest = antres.rbest;
+            for (int index2 = 0; index2 < numAnts; index2++) {
+                Ant a = generateAntTour();
+                if (Double.compare(a.value, bestValue) == 0) {
+                    bestIndex = A.size();
                 }
+                A.add(a);
             }
-            
+
             for (int g = 0; g < 100; g++) {
-                double rand = RandomDoubleMinMax(0, 1);
+                double rand = RandDouble(0, 1);
                 if (rand <= 0.8) {
-                    Returning sares = generateSAtour(ant, sa_temp, sa_coolRate);
-                    if (sares.tour.size() == numVM && sares.rbest < rbest) {
-                        ant = sares.tour;
-                        rbest = sares.rbest;
+                    Ant a = generateSAtour(sa_temp, sa_coolRate);
+                    if (Double.compare(a.value, bestValue) == 0) {
+                        bestIndex = A.size();
                     }
+                    A.add(a);
                 }
             }
-
-            Rbest.add(new Returning(ant, rbest));
         }
 
-        FindBestSolution(Rbest);
+        System.out.println("Best Solution using Hybrid ACO-SA is:" + bestTour.toString());
+        System.out.println("Fairness-Utilization value is " + bestValue);
     }
 
     /**
@@ -93,16 +100,66 @@ public class HybridACOSA {
      *
      * @return path & Benefit value
      */
-    private Returning generateAntTour() {
+    private Ant generateAntTour() {
+        Ant a = new Ant();
         ArrayList<Integer> tour = new ArrayList<>();
-        double rbest = 0.0;
 
-        // clone hosts
+        while (tour.size() != appBundle.getCount() - appBundle.getTour().size()) {
+            tour = GenerateTour();
+        }
+
+        a.tour.addAll(appBundle.getTour());
+        a.tour.addAll(tour);
+        a.model = GetModel(a, tour);
+        a.value = a.model.BenefitFunction();
+
+        if (Double.compare(a.value, bestValue) > 0) {
+            bestTour = a.tour;
+            bestValue = a.value;
+        }
+
+        return a;
+    }
+
+    /**
+     * Generate ant path based on previous path
+     *
+     * @param bestroute
+     * @param temporature
+     * @param coolRate
+     * @return path & benefit value
+     */
+    private Ant generateSAtour(double temporature, double coolRate) {
+        Ant a = new Ant();
+        while (temporature >= 20) {
+            ArrayList<Integer> tour = new ArrayList<>();
+
+            while (tour.size() != appBundle.getCount() - appBundle.getTour().size()) {
+                tour = GenerateTour();
+            }
+
+            a.tour.addAll(appBundle.getTour());
+            a.tour.addAll(tour);
+            a.model = GetModel(a, tour);
+            a.value = a.model.BenefitFunction();
+
+            if (Double.compare(a.value, bestValue) > 0) {
+                bestTour = a.tour;
+                bestValue = a.value;
+            }
+
+            temporature = temporature * (1 - coolRate);
+        }
+
+        return a;
+    }
+
+    private ArrayList<Integer> GenerateTour() {
+        ArrayList<Integer> tour = new ArrayList<>();
         ArrayList<PhysicalMachine> hosts = CloneHost();
 
         int currentNode = 0;
 
-        // Build the tour
         for (int i = 0; i < numVM; i++) {
 
             probabilities = calculateProbabilities(trails, hosts, currentNode);
@@ -113,82 +170,23 @@ public class HybridACOSA {
                 break;
             }
 
-            Allocation(hosts, nextNode, i);
-            tour.add(nextNode + 1);
+            hosts.get(nextNode).Allocation(vms.get(i));
+            tour.add(nextNode);
             currentNode = nextNode;
         }
 
-        // If Ant finished route
-        if (tour.size() == numVM) {
-            GameModel gameModel = new GameModel(pms, vms, tour);
-            rbest = gameModel.BenefitFunction();
-            updateTrails(hosts, trails, numVM, numPM);
-        }
-
-        return new Returning(tour, rbest);
+        updateTrails(hosts, trails, numVM, numPM);
+        return tour;
     }
-    
-    /**
-     * Generate ant path based on previous path
-     * @param bestroute
-     * @param temporature
-     * @param coolRate
-     * @return path & benefit value
-     */
-    private Returning generateSAtour(ArrayList<Integer> bestroute, double temporature, double coolRate) {
-        ArrayList<Integer> intialtour = new ArrayList<>();
-        ArrayList<PhysicalMachine> host = CloneHost();
 
-        int rand = RandomIntMinMax(1, numVM);
-        if (bestroute.size() == numVM && rand <= Math.round(numVM / 3)) {
-            for (int index = 0; index < rand; index++) {
-                try {
-                    Allocation(host, bestroute.get(index), index);
-                    intialtour.add(bestroute.get(index));
-                } catch (Exception ex) {
-
-                }
-            }
-        } else {
-            rand = 0;
+    private GameModel GetModel(Ant a, ArrayList<Integer> tour) {
+        ArrayList<PhysicalMachine> hosts = CloneHost();
+        for (int i = 0; i < tour.size(); i++) {
+            Allocation(hosts, tour.get(i) - 1, i);
         }
-
-        ArrayList<Integer> bettertour = new ArrayList<>();
-        double rbetter = 1e9;
-        while (temporature >= 20) {
-            ArrayList<Integer> tour = new ArrayList<>();
-
-            for (int i = 0; i < intialtour.size(); i++) {
-                tour.add(intialtour.get(i));
-            }
-
-            for (int i = rand; i < numVM; i++) {
-                int randPM = RandomIntMinMax(0, numPM - 1);
-                randPM = CheckAvailable(host, randPM, i, 1);
-                if (randPM == -1) {
-                    break;
-                }
-                Allocation(host, randPM, i);
-                tour.add(randPM + 1);
-            }
-
-            if (tour.size() == numVM) {
-                GameModel gameModel = new GameModel(pms, vms, tour);
-                double rbest = gameModel.BenefitFunction();
-
-                if (rbest < rbetter) {
-                    rbetter = rbest;
-                    bettertour = tour;
-                }
-                updateTrails(host, trails, numVM, numPM);
-            }
-
-            temporature = temporature * (1 - coolRate);
-        }
-
-        return new Returning(bettertour, rbetter);
+        return new GameModel(appBundle.getApp(), hosts, vms, a.tour);
     }
-    
+
     private ArrayList<PhysicalMachine> CloneHost() {
         ArrayList<PhysicalMachine> hosts = new ArrayList<>();
         for (PhysicalMachine machine : pms) {
@@ -197,14 +195,14 @@ public class HybridACOSA {
         return hosts;
     }
 
-    private int selectNext(int currentNode, double[] probabilities, ArrayList<PhysicalMachine> hosts) {
+    private int selectNext(int currentNode, ArrayList<Double> probabilities, ArrayList<PhysicalMachine> hosts) {
         int index = -1;
         double maxProb = 0.0;
 
-        double r = RandomDoubleMinMax(0, 1);
+        double r = RandDouble(0, 1);
         if (r <= 0.6) {
             for (int i = 0; i < numPM; i++) {
-                index = RandomIntMinMax(0, numPM - 1);
+                index = RandInteger(0, numPM - 1);
                 PhysicalMachine pm = hosts.get(index);
                 if (pm.CheckAvailable(vms.get(currentNode))) {
                     return index;
@@ -214,8 +212,8 @@ public class HybridACOSA {
         } else {
             for (int i = 0; i < numPM; i++) {
                 PhysicalMachine pm = hosts.get(i);
-                if (maxProb < probabilities[i] && pm.CheckAvailable(vms.get(currentNode))) {
-                    maxProb = probabilities[i];
+                if (Double.compare(maxProb, probabilities.get(i)) < 0 && pm.CheckAvailable(vms.get(currentNode))) {
+                    maxProb = probabilities.get(i);
                     index = i;
                 }
             }
@@ -224,12 +222,12 @@ public class HybridACOSA {
         return index;
     }
 
-    private void updateTrails(ArrayList<PhysicalMachine> hosts, double[][] trails, int numVM, int numPM) {
+    private void updateTrails(ArrayList<PhysicalMachine> hosts, ArrayList<ArrayList<Double>> trails, int numVM, int numPM) {
         double r[] = UpdatePheromone(hosts);
         double contribution = Q / (1 / (nguy * r[0] + (1 - nguy) * r[1]));
         for (int i = 0; i < numVM; i++) {
             for (int j = 0; j < numPM; j++) {
-                trails[i][j] = (1 - evaporationRate) * trails[i][j] + contribution;
+                trails.get(i).set(j, (1 - evaporationRate) * trails.get(i).get(j) + contribution);
             }
         }
     }
@@ -240,7 +238,7 @@ public class HybridACOSA {
 
     private int CheckAvailable(ArrayList<PhysicalMachine> host, int indexPM, int indexVM, int runtime) {
         while (!host.get(indexPM).CheckAvailable(vms.get(indexVM))) {
-            indexPM = RandomIntMinMax(0, numPM - 1);
+            indexPM = RandInteger(0, numPM - 1);
             if (runtime > numPM * 10) {
                 return -1;
             }
@@ -249,7 +247,7 @@ public class HybridACOSA {
         return indexPM;
     }
 
-    private int RandomIntMinMax(int min, int max) {
+    private int RandInteger(int min, int max) {
         int result = 0;
         for (int i = 0; i < 10; i++) {
             result = ThreadLocalRandom.current().nextInt(((max - min) + 1)) + min;
@@ -257,7 +255,7 @@ public class HybridACOSA {
         return result;
     }
 
-    private double RandomDoubleMinMax(double min, double max) {
+    private double RandDouble(double min, double max) {
         double result = 0.0;
         for (int i = 0; i < 10; i++) {
             result = ThreadLocalRandom.current().nextDouble(((max - min) + 1)) + min;
@@ -298,46 +296,47 @@ public class HybridACOSA {
         return avgrload / numPM;
     }
 
-    private double[] calculateProbabilities(double[][] trails, ArrayList<PhysicalMachine> hosts, int currentNode) {
-        double[] localProbabilities = new double[numPM];
+    private ArrayList<Double> calculateProbabilities(ArrayList<ArrayList<Double>> trails, ArrayList<PhysicalMachine> hosts, int currentNode) {
+        ArrayList<Double> localProbabilities = new ArrayList<>();
         double pheromone = pheromones(trails, currentNode, hosts);
         for (int i = 0; i < numPM; i++) {
-            double probability = Math.pow(trails[currentNode][i], alpha) * Math.pow(1.0 / hosts.get(i).performance(), beta);
-            localProbabilities[i] = probability / pheromone;
+            double probability = Math.pow(trails.get(currentNode).get(i), alpha) * Math.pow(1.0 / hosts.get(i).performance(), beta);
+            localProbabilities.add(probability / pheromone);
         }
         return localProbabilities;
     }
 
-    private double pheromones(double[][] trails, int currentNode, ArrayList<PhysicalMachine> hosts) {
+    private double pheromones(ArrayList<ArrayList<Double>> trails, int currentNode, ArrayList<PhysicalMachine> hosts) {
         double pheromone = 0.0;
 
         for (int i = 0; i < numPM; i++) {
-            pheromone += Math.pow(trails[currentNode][i], alpha) * Math.pow(1.0 / hosts.get(i).performance(), beta);
+            pheromone += Math.pow(trails.get(currentNode).get(i), alpha) * Math.pow(1.0 / hosts.get(i).performance(), beta);
         }
         return pheromone;
     }
 
-    private void FindBestSolution(ArrayList<Returning> Rbest) {
-        Returning temp = Rbest.getFirst();
-        for (int i = 1; i < Rbest.size(); i++) {
-            if (temp.rbest > Rbest.get(i).rbest) {
-                temp = Rbest.get(i);
-            }
-        }
-
-        System.out.println("Best Solution using Hybrid ACO-SA is:" + temp.tour.toString());
-        System.out.println("The Benifit Value is: " + temp.rbest);
-    }
-
-    private class Returning {
+//    private void FindBestSolution(ArrayList<Returning> Rbest) {
+//        Returning temp = Rbest.getFirst();
+//        for (int i = 1; i < Rbest.size(); i++) {
+//            if (temp.rbest > Rbest.get(i).rbest) {
+//                temp = Rbest.get(i);
+//            }
+//        }
+//
+//        System.out.println("Best Solution using Hybrid ACO-SA is:" + temp.tour.toString());
+//        System.out.println("The Benifit Value is: " + temp.rbest);
+//    }
+    private class Ant {
 
         ArrayList<Integer> tour;
-        double rbest;
+        Double value;
+        GameModel model;
 
-        Returning(ArrayList<Integer> tour, double rbest) {
-            this.tour = tour;
-            this.rbest = rbest;
+        Ant() {
+            tour = new ArrayList<>();
+            value = 0.0;
+            model = null;
         }
     }
-    
+
 }

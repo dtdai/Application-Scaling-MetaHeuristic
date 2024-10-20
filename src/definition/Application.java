@@ -27,6 +27,10 @@ public class Application {
         this.numVm = numVm;
     }
     
+    public void addNumVm(int numVm) {
+        this.numVm += numVm;
+    }
+    
     public ArrayList<Integer> getTier(int index) {
         return tier.isEmpty() ? null : tier.get(index);
     }
@@ -37,6 +41,10 @@ public class Application {
     
     public void setTier(ArrayList<Integer> arr) {
         this.tier.add(arr);
+    }
+    
+    public void setTier(int index, ArrayList<Integer> arr) {
+        this.tier.set(index, arr);
     }
 
     public ArrayList<Integer> getLamb() {

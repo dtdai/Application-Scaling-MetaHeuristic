@@ -1,5 +1,6 @@
 package algorithm;
 
+import definition.AppBundle;
 import definition.Machine;
 import definition.VirtualMachine;
 import definition.PhysicalMachine;
@@ -19,59 +20,78 @@ public class SA {
     private final int numVM;
     private double temperature;
     private final double coolingRate;
-    private ArrayList<Integer> tour, besttour;
-    private double bestFairUtil = 1e9;
-    private GameModel gamemodel;
+    private ArrayList<Integer> bestTour;
+    private double bestValue = Double.MIN_EXPONENT;
+    private Object bestIndex;
+    private AppBundle appBundle;
 
-    public SA(ArrayList<Machine> machine, double temp, double coolRate) {
+    public SA(int numApps, ArrayList<Machine> machine, double temp, double coolRate) {
         this.pms = new ArrayList<>();
         this.vms = new ArrayList<>();
         for (Machine i : machine) {
-            if (i instanceof PhysicalMachine) {
-                this.pms.add((PhysicalMachine) i);
-            } else if (i instanceof VirtualMachine) {
-                this.vms.add((VirtualMachine) i);
+            switch (i) {
+                case PhysicalMachine p ->
+                    this.pms.add(p);
+                case VirtualMachine v ->
+                    this.vms.add(v);
+                default -> {
+                }
             }
         }
         this.numPM = pms.size();
         this.numVM = vms.size();
         this.temperature = temp;
         this.coolingRate = coolRate;
+
+        appBundle = new AppBundle(numApps, pms, vms);
     }
 
     public void solve() {
-        besttour = new ArrayList<>();
+        ArrayList<Annealing> anealings = new ArrayList<>();
         while (temperature > 20.0) {
-            tour = new ArrayList<>();
-            ArrayList<PhysicalMachine> hosts = CloneHost();
+            Annealing a = new Annealing();
+            ArrayList<Integer> tour = new ArrayList<>();
 
-            // Generate tour
-            for (int i = 0; i < numVM; i++) {
-                int randPM = RandomIntMinMax(0, numPM - 1);
-                randPM = CheckAvailable(hosts, randPM, i, 1);
-                if (randPM == -1) {
-                    break;
-                }
-                Allocation(hosts, randPM, i);
-                tour.add(randPM + 1);
+            while (tour.size() != appBundle.getCount() - appBundle.getTour().size()) {
+                tour = GenerateTour();
             }
 
-//            System.out.println(tour.toString());
-            if (tour.size() == numVM) {
-                GameModel gameModel = new GameModel(pms, vms, tour);
-                double F = gameModel.BenefitFunction();
-//                System.out.println(F);
-                if (Double.compare(F, bestFairUtil) < 0) {
-                    besttour = tour;
-                    bestFairUtil = F;
-                    gamemodel = gameModel;
-                }
+            a.tour.addAll(appBundle.getTour());
+            a.tour.addAll(tour);
+            a.model = GetModel(a, tour);
+            a.value = a.model.BenefitFunction();
+
+            if (Double.compare(a.value, bestValue) > 0) {
+                bestTour = a.tour;
+                bestValue = a.value;
+                bestIndex = a.model;
             }
+            
+            anealings.add(a);
             temperature = temperature * (1 - coolingRate);
         }
-        System.out.println(bestFairUtil);
-        System.out.println("Best Solution using SA is: " + besttour.toString());
-        System.out.println("Best value is " + bestFairUtil);
+        
+        System.out.println("Best Solution using SA is: " + bestTour.toString());
+        System.out.println("Best value is " + bestValue);
+    }
+
+    private ArrayList<Integer> GenerateTour() {
+        ArrayList<Integer> tour = new ArrayList<>();
+        ArrayList<PhysicalMachine> hosts = CloneHost();
+
+        for (int i = appBundle.getTour().size(); i < appBundle.getCount(); i++) {
+
+            int randPM = RandInteger(0, numPM - 1);
+            randPM = CheckAvailable(hosts, randPM, i, 1);
+            if (randPM == -1) {
+                break;
+            }
+
+            Allocation(hosts, randPM, i);
+            tour.add(randPM + 1);
+        }
+
+        return tour;
     }
 
     private ArrayList<PhysicalMachine> CloneHost() {
@@ -82,8 +102,16 @@ public class SA {
         }
         return host;
     }
+    
+        private GameModel GetModel(Annealing a, ArrayList<Integer> tour) {
+        ArrayList<PhysicalMachine> hosts = CloneHost();
+        for (int i = 0; i < tour.size(); i++) {
+            Allocation(hosts, tour.get(i) - 1, i);
+        }
+        return new GameModel(appBundle.getApp(), hosts, vms, a.tour);
+    }
 
-    private int RandomIntMinMax(int min, int max) {
+    private int RandInteger(int min, int max) {
         int result = 0;
         for (int i = 0; i < 10; i++) {
             result = ThreadLocalRandom.current().nextInt(((max - min) + 1)) + min;
@@ -93,7 +121,7 @@ public class SA {
 
     private int CheckAvailable(ArrayList<PhysicalMachine> host, int indexPM, int indexVM, int runtime) {
         while (!host.get(indexPM).CheckAvailable(vms.get(indexVM))) {
-            indexPM = RandomIntMinMax(0, numPM - 1);
+            indexPM = RandInteger(0, numPM - 1);
             if (runtime > numPM * 10) {
                 return -1;
             }
@@ -104,5 +132,18 @@ public class SA {
 
     private void Allocation(ArrayList<PhysicalMachine> host, int indexPM, int indexVM) {
         host.get(indexPM).Allocation(vms.get(indexVM));
+    }
+
+    private class Annealing {
+
+        ArrayList<Integer> tour;
+        double value;
+        GameModel model;
+
+        Annealing() {
+            tour = new ArrayList<>();
+            value = 0.0;
+            model = null;
+        }
     }
 }
