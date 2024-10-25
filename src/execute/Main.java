@@ -21,11 +21,10 @@ public class Main {
     public static void main(String[] args) throws IOException {
 
 //        <editor-fold desc="Variables">
-
-        int numPM = 25; // Amount Physical Machine - Host
-        int numVM = 75; // Amount Virtual Machine - Task
-        int numApp = 3; // Amount Application
-        int solution = 1; // for Switch condition: 0 -> Nothing (for Testing); 1 -> ACO; 2 -> PSO; 3 -> SA; 4 -> Hybrid;
+        int numPM = 100; // Amount Physical Machine - Host
+        int numVM = 300; // Amount Virtual Machine - Task
+        int numApp = 20; // Amount Application
+        int solution = 1; // for Switch condition: 1 -> ACO; 2 -> PSO; 3 -> SA; 4 -> Hybrid;
         int aco_numAnts = 100; // ACO - Amount ants generate
         double aco_alpha = 1.0; // ACO - Pheromone importance
         double aco_beta = 2.0; // ACO - Distance priority
@@ -35,12 +34,12 @@ public class Main {
         double pso_defaultW = 0.729844; // PSO Constants
         double pso_defaultC1 = 1.496185; // PSO Constants
         double pso_defaultC2 = 1.496185; // PSO Constants
-        double sa_temp = 100; // SA - Intialize temperature
+        double sa_temp = 1000; // SA - Intialize temperature
         double sa_coolRate = .05; // SA - Cooling Rate
-        ArrayList<Machine> mc = new ArrayList<>(); // hosts & tasks list
+        ArrayList<Machine> mc; // hosts & tasks list
+        ArrayList<Integer> tour = new ArrayList<>(); // besttour
 
 //        </editor-fold>
-        
 //        <editor-fold defaultstate="collapsed" desc="Testing 1">
 //
 //        mc.add(new PhysicalMachine(8, 16, 80));
@@ -72,33 +71,54 @@ public class Main {
 //        System.out.println(gm.FairnessUtilization(pm));
 //
 //        </editor-fold>
-        
 //        <editor-fold desc="Main">
-
-        ImportFile(mc, "pm.txt", numPM, true);
-        ImportFile(mc, "vm.txt", numVM, false);
-
-        switch (solution) {
-            case 1 -> {
-                ACO aco = new ACO(numApp, aco_numAnts, mc, aco_alpha, aco_beta, aco_evRate);
-                aco.solve();
-            }
-            case 2 -> {
-//                PSO pso = new PSO(numApp, mc, pso_numParticles, pso_Iteration, pso_defaultW, pso_defaultC1, pso_defaultC2);
-//                pso.solve();
-            }
-            case 3 -> {
-                SA sa = new SA(numApp, mc, sa_temp, sa_coolRate);
-                sa.solve();
-            }
-            case 4 -> {
-//                HybridACOSA hybridACOSA = new HybridACOSA(numApp, aco_numAnts, mc, aco_alpha, aco_beta, aco_evRate, sa_temp, sa_coolRate);
-//                hybridACOSA.solve();
-            }
-        }
         
-//        </editor-fold>
+//        for (int i = 0; i < 10; i++) {
+            mc = new ArrayList<>();
+            ImportFile(mc, "pm.txt", numPM, true);
+            ImportFile(mc, "vm.txt", numVM, false);
 
+            long startTime = System.nanoTime();
+            switch (solution) {
+                case 1 -> {
+                    System.out.println("");
+                    ACO aco = new ACO(numApp, aco_numAnts, mc, aco_alpha, aco_beta, aco_evRate);
+                    aco.solve();
+                    tour = aco.getBestTour();
+                }
+                case 2 -> {
+                    System.out.println("");
+                    PSO pso = new PSO(numApp, mc, pso_numParticles, pso_Iteration, pso_defaultW, pso_defaultC1, pso_defaultC2);
+                    pso.solve();
+                    tour = pso.getBestTour();
+                }
+                case 3 -> {
+                    System.out.println("");
+                    SA sa = new SA(numApp, mc, sa_temp, sa_coolRate);
+                    sa.solve();
+                    tour = sa.getBestTour();
+                }
+                case 4 -> {
+                    System.out.println("");
+                    HybridACOSA hybridACOSA = new HybridACOSA(numApp, aco_numAnts, mc, aco_alpha, aco_beta, aco_evRate, sa_temp, sa_coolRate);
+                    hybridACOSA.solve();
+                    tour = hybridACOSA.getBestTour();
+                }
+            }
+
+            long endTime = System.nanoTime();
+            long duration = endTime - startTime;
+            double durationInMillis = duration / 1_000_000.0;
+            System.out.println("Duration: " + durationInMillis + " ms.");
+            
+            mc = new ArrayList<>();
+            ImportFile(mc, "pm.txt", numPM, true);
+            ImportFile(mc, "vm.txt", numVM, false);
+            EvaluateResult er = new EvaluateResult(mc, numApp, tour);
+//        }
+        
+
+//        </editor-fold>
 //        <editor-fold desc="Testing 2">
 //
 //        ArrayList<PhysicalMachine> pms = new ArrayList<>();
@@ -124,7 +144,6 @@ public class Main {
 //        }
 //        System.out.println(omp.size());
 //        System.out.println(omp.toString());
-
 //        ArrayList<PhysicalMachine> pms = new ArrayList<>();
 //        ArrayList<VirtualMachine> vms = new ArrayList<>();
 //        ArrayList<Integer> tour = new ArrayList<>();
@@ -153,13 +172,10 @@ public class Main {
 //        tour.add(11); tour.add(12); tour.add(13); tour.add(14); tour.add(15);
 //        
 //        GameModel gameModel = new GameModel(pms, vms, tour);
-
 //        </editor-fold>
-
     }
 
 //    <editor-fold desc="Import">
-    
     public static void ImportFile(ArrayList<Machine> mc, String path, int num, Boolean pm) throws IOException {
         try {
             FileReader fileReader = new FileReader(path);
@@ -192,7 +208,6 @@ public class Main {
             System.err.println("Đã xảy ra lỗi khi đọc từ file: " + e.getMessage());
         }
     }
-    
+
 //    </editor-fold>
-    
 }

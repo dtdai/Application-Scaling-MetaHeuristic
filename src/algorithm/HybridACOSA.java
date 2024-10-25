@@ -70,7 +70,7 @@ public class HybridACOSA {
             trails.add(trail);
         }
 
-        for (int index = 0; index < 100; index++) {
+        for (int index = 0; index < 10; index++) {
             for (int index2 = 0; index2 < numAnts; index2++) {
                 Ant a = generateAntTour();
                 if (Double.compare(a.value, bestValue) == 0) {
@@ -95,6 +95,11 @@ public class HybridACOSA {
         System.out.println("Fairness-Utilization value is " + bestValue);
     }
 
+    public ArrayList<Integer> getBestTour() {
+        return bestTour;
+    }
+    
+
     /**
      * Generate ant path based on pheromones
      *
@@ -114,7 +119,7 @@ public class HybridACOSA {
         a.value = a.model.BenefitFunction();
 
         if (Double.compare(a.value, bestValue) > 0) {
-            bestTour = a.tour;
+            bestTour = tour;
             bestValue = a.value;
         }
 
@@ -130,8 +135,10 @@ public class HybridACOSA {
      * @return path & benefit value
      */
     private Ant generateSAtour(double temporature, double coolRate) {
-        Ant a = new Ant();
+        Ant A = new Ant();
+        
         while (temporature >= 20) {
+            Ant a = new Ant();
             ArrayList<Integer> tour = new ArrayList<>();
 
             while (tour.size() != appBundle.getCount() - appBundle.getTour().size()) {
@@ -144,14 +151,15 @@ public class HybridACOSA {
             a.value = a.model.BenefitFunction();
 
             if (Double.compare(a.value, bestValue) > 0) {
-                bestTour = a.tour;
+                bestTour = tour;
                 bestValue = a.value;
+                A = a;
             }
 
             temporature = temporature * (1 - coolRate);
         }
 
-        return a;
+        return A;
     }
 
     private ArrayList<Integer> GenerateTour() {
@@ -160,7 +168,7 @@ public class HybridACOSA {
 
         int currentNode = 0;
 
-        for (int i = 0; i < numVM; i++) {
+        for (int i = appBundle.getTour().size(); i < appBundle.getCount(); i++) {
 
             probabilities = calculateProbabilities(trails, hosts, currentNode);
 
@@ -170,8 +178,8 @@ public class HybridACOSA {
                 break;
             }
 
-            hosts.get(nextNode).Allocation(vms.get(i));
-            tour.add(nextNode);
+            Allocation(hosts, nextNode, i);
+            tour.add(nextNode + 1);
             currentNode = nextNode;
         }
 
@@ -194,13 +202,17 @@ public class HybridACOSA {
         }
         return hosts;
     }
+    
+    private void Allocation(ArrayList<PhysicalMachine> host, int indexPM, int indexVM) {
+        host.get(indexPM).Allocation(vms.get(indexVM));
+    }
 
     private int selectNext(int currentNode, ArrayList<Double> probabilities, ArrayList<PhysicalMachine> hosts) {
         int index = -1;
         double maxProb = 0.0;
 
-        double r = RandDouble(0, 1);
-        if (r <= 0.6) {
+        double r = RandDouble(0.0, 1.0);
+        if (Double.compare(r, 0.6) <= 0) {
             for (int i = 0; i < numPM; i++) {
                 index = RandInteger(0, numPM - 1);
                 PhysicalMachine pm = hosts.get(index);
@@ -230,21 +242,6 @@ public class HybridACOSA {
                 trails.get(i).set(j, (1 - evaporationRate) * trails.get(i).get(j) + contribution);
             }
         }
-    }
-
-    private void Allocation(ArrayList<PhysicalMachine> host, int indexPM, int indexVM) {
-        host.get(indexPM).Allocation(vms.get(indexVM));
-    }
-
-    private int CheckAvailable(ArrayList<PhysicalMachine> host, int indexPM, int indexVM, int runtime) {
-        while (!host.get(indexPM).CheckAvailable(vms.get(indexVM))) {
-            indexPM = RandInteger(0, numPM - 1);
-            if (runtime > numPM * 10) {
-                return -1;
-            }
-            runtime++;
-        }
-        return indexPM;
     }
 
     private int RandInteger(int min, int max) {

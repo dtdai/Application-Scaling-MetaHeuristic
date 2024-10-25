@@ -30,10 +30,8 @@ public class SA {
         this.vms = new ArrayList<>();
         for (Machine i : machine) {
             switch (i) {
-                case PhysicalMachine p ->
-                    this.pms.add(p);
-                case VirtualMachine v ->
-                    this.vms.add(v);
+                case PhysicalMachine p -> this.pms.add(p);
+                case VirtualMachine v -> this.vms.add(v);
                 default -> {
                 }
             }
@@ -62,7 +60,7 @@ public class SA {
             a.value = a.model.BenefitFunction();
 
             if (Double.compare(a.value, bestValue) > 0) {
-                bestTour = a.tour;
+                bestTour = tour;
                 bestValue = a.value;
                 bestIndex = a.model;
             }
@@ -73,6 +71,10 @@ public class SA {
         
         System.out.println("Best Solution using SA is: " + bestTour.toString());
         System.out.println("Best value is " + bestValue);
+    }
+
+    public ArrayList<Integer> getBestTour() {
+        return bestTour;
     }
 
     private ArrayList<Integer> GenerateTour() {

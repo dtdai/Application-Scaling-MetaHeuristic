@@ -65,17 +65,17 @@ public class AppBundle {
     private void AutoScaling() {
         for (int i = 0; i < app.size(); i++) {
             for (int t = 0; t < 3; t++) {
-                double r = RandDouble(0.0, 1.0);
-                
-                if (r >= 0.95) {
-                    addApp(i, t, 3);
-                }
-                else if (r >= 0.8) {
-                    addApp(i, t, 2);
-                }
-                else if (r >= 0.5) {
+//                double r = RandDouble(0.0, 1.0);
+//                
+//                if (r >= 0.95) {
+//                    addApp(i, t, 3);
+//                }
+//                else if (r >= 0.8) {
+//                    addApp(i, t, 2);
+//                }
+//                else if (r >= 0.5) {
                     addApp(i, t, 1);
-                }
+//                }
             }
         }
     }

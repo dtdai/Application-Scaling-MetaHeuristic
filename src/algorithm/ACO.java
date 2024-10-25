@@ -65,7 +65,7 @@ public class ACO {
             trails.add(trail);
         }
 
-        for (int index = 0; index < 100; index++) {
+        for (int index = 0; index < 10; index++) {
             for (int index2 = 0; index2 < numAnts; index2++) {
                 A.add(generateAntTour());
             }
@@ -83,6 +83,10 @@ public class ACO {
 //        }
     }
 
+    public ArrayList<Integer> getBestTour() {
+        return bestTour;
+    }
+
     private Ants generateAntTour() {
         Ants a = new Ants();
         ArrayList<Integer> tour = new ArrayList<>();
@@ -97,7 +101,7 @@ public class ACO {
         a.value = a.model.BenefitFunction();
 
         if (Double.compare(a.value, bestValue) > 0) {
-            bestTour = a.tour;
+            bestTour = tour;
             bestValue = a.value;
             bestIndex = a.model;
         }

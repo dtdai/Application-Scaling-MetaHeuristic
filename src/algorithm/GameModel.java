@@ -78,7 +78,8 @@ public class GameModel {
 
         for (int i = 0; i < a; i++) {
             for (int j = 0; j < app.get(i).getNumVm(); j++) {
-                app.get(i).setLamb(RandInteger(2, 10));
+                app.get(i).setLamb(RandInteger(5, 10)); // speed from outside to nodes
+//                app.get(i).setLamb(8);
             }
         }
 
@@ -89,7 +90,7 @@ public class GameModel {
 
         for (int i = 0; i < a; i++) {
             for (int j = 0; j < tier; j++) {
-                ArrayList<Integer> v = app.get(i).getTier(i);
+                ArrayList<Integer> v = app.get(i).getTier(j);
                 for (Integer value : v) {
                     int c = PA.get(tour.get(value)).get(i) + 1;
                     PA.get(tour.get(value)).set(i, c);
@@ -155,7 +156,8 @@ public class GameModel {
 
     private void Processing() {
         for (int k = 0; k < a; k++) {
-            gamma = RandInteger(20, 30);
+            gamma = RandInteger(20, 30); // Num request per sec
+//            gamma = 25;
             Beta = gamma;
             ArrayList<Integer> lamb = app.get(k).getLamb();
             RChangeMatrix(k, tour.size() + 1);
@@ -223,5 +225,17 @@ public class GameModel {
         }
         result = 1 / (val1 + val2);
         return result;
+    }
+    
+    public void Evaluate() {
+        ArrayList<Double> waittime = Normalize(Wt);
+        ArrayList<Double> appcost = Normalize(AC);
+        System.out.println("");
+        for (int i = 0; i < a; i++) {
+            System.out.print("App " + (i + 1) + ":\t");
+            System.out.print("Response Time: " + waittime.get(i));
+            System.out.println("\t, App Cost:" + appcost.get(i));
+        }
+        
     }
 }
